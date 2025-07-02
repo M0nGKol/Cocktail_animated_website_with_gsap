@@ -19,11 +19,8 @@ const Hero = () => {
 
         if (!title || subtitles.length === 0) return;
 
-        const cleanupFns: (() => void)[] = [];
-
-        const heroSplit = new SplitText(title, {
-            type: "chars, words",
-        });
+        const heroSplit = new SplitText(title, { type: "chars, words" });
+        const paragraphSplit = new SplitText(Array.from(subtitles), { type: "lines" });
 
         heroSplit.chars.forEach((char) => char.classList.add("text-gradient"));
 
@@ -31,38 +28,33 @@ const Hero = () => {
             yPercent: 100,
             duration: 1.8,
             ease: "expo.out",
-            stagger: 0.05,
+            stagger: 0.06,
         });
 
-        subtitles.forEach((subtitleEl) => {
-            const paragraphSplit = new SplitText(subtitleEl, {
-                type: "lines",
-            });
-
-            gsap.from(paragraphSplit.lines, {
-                opacity: 0,
-                yPercent: 100,
-                duration: 1.8,
-                ease: "expo.out",
-                stagger: 0.05,
-                delay: 1,
-            });
-
-            cleanupFns.push(() => paragraphSplit.revert());
+        gsap.from(paragraphSplit.lines, {
+            opacity: 0,
+            yPercent: 100,
+            duration: 1.8,
+            ease: "expo.out",
+            stagger: 0.06,
+            delay: 1,
         });
 
-        gsap
-            .timeline({
-                scrollTrigger: {
-                    trigger: "#hero",
-                    start: "top top",
-                    end: "bottom top",
-                    scrub: true,
-                },
-            })
-            .to(".right-leaf", { y: 200 }, 0)
-            .to(".left-leaf", { y: -200 }, 0);
+        // Timeline for leaf animations
+        const leafTimeline = gsap.timeline({
+            scrollTrigger: {
+                trigger: "#hero",
+                start: "top top",
+                end: "bottom top",
+                scrub: true,
+            },
+        });
 
+        leafTimeline.to(".right-leaf", { y: 200 }, 0);
+        leafTimeline.to(".left-leaf", { y: -200 }, 0);
+        // Removed .arrow animation since no element exists
+
+        // Video scroll timeline
         const startValue = isMobile ? "top 50%" : "center 60%";
         const endValue = isMobile ? "120% top" : "bottom top";
 
@@ -71,7 +63,7 @@ const Hero = () => {
 
         const tl = gsap.timeline({
             scrollTrigger: {
-                trigger: ".video",
+                trigger: "video", // note dot before class name
                 start: startValue,
                 end: endValue,
                 scrub: true,
@@ -79,22 +71,27 @@ const Hero = () => {
             },
         });
 
-        const onLoad = () => {
+        const onLoadedMetadata = () => {
             tl.to(video, {
                 currentTime: video.duration || 1,
             });
         };
 
         if (video.readyState >= 1) {
-            onLoad();
+            onLoadedMetadata();
         } else {
-            video.addEventListener("loadedmetadata", onLoad);
+            video.addEventListener("loadedmetadata", onLoadedMetadata);
         }
 
+        // Cleanup function
         return () => {
-            video.removeEventListener("loadedmetadata", onLoad);
+            video.removeEventListener("loadedmetadata", onLoadedMetadata);
             heroSplit.revert();
-            cleanupFns.forEach((fn) => fn());
+            paragraphSplit.revert();
+            leafTimeline.scrollTrigger?.kill();
+            tl.scrollTrigger?.kill();
+            tl.kill();
+            leafTimeline.kill();
         };
     }, []);
 
@@ -135,12 +132,13 @@ const Hero = () => {
                 </div>
             </section>
 
-            <div className="video absolute inset-0 z-[-1]">
+            <div className="video absolute inset-0 z-[1] ">
                 <video
                     ref={videoRef}
                     muted
                     playsInline
                     preload="auto"
+                    controls={false}
                     src="/videos/output.mp4"
                 />
             </div>
