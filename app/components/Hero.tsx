@@ -74,6 +74,7 @@ const Hero = () => {
         const onLoadedMetadata = () => {
             tl.to(video, {
                 currentTime: video.duration || 1,
+
             });
         };
 
@@ -132,7 +133,7 @@ const Hero = () => {
                 </div>
             </section>
 
-            <div className="video absolute inset-0 z-[1] ">
+            <div className="video absolute inset-0 ">
                 <video
                     ref={videoRef}
                     muted
